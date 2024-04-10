@@ -43,7 +43,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     padding: const EdgeInsets.all(18.0),
                     child: TableCalendar(
                       calendarFormat: CalendarFormat.month,
-                      headerVisible: false,
+                      headerVisible: true,
                       focusedDay: DateTime.now(),
                       firstDay: DateTime(2023),
                       lastDay: DateTime(2025),
