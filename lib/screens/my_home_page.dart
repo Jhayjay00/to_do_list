@@ -10,6 +10,10 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+TextEditingController nameController = TextEditingController();
+
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -51,7 +55,36 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                   ),
                 ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(10.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 300,
+                              child: TextField(
+                                maxLength: 20,
+                               controller: nameController,
+                               decoration: InputDecoration(
+                               border: OutlineInputBorder(
+                               borderRadius: BorderRadius.circular(10)),
+                               labelText: 'State your task?', 
+                            ),
+                          ),
+                            ),
+                  
+                        ],
+                       ),
               ), 
+             const Padding(
+                padding: const EdgeInsets.all(8,0),
+               child:ElevatedButton(
+                onPressed: null, 
+                child: Text('Noted')
+                ) , 
+              )
+          
           ], 
           ), 
         ),
