@@ -63,13 +63,61 @@ Future<void> fetchTaskFromFirestore() async {
     //Getting the task name from the documents's data
     String taskName = docSnapshot.get('name');
 
-    //Getting the completion status ofthe task
+    //Getting the completion status of the task
     bool completed = docSnapshot.get('completed');
 
     //Add the task name to the list of the fetched data.
     fetchedTasks.add(taskName);
   } 
-}
+
+    //update the state to reflect the fetched data
+
+    setState(() {
+      tasks.clear(); //clear the existing task list 
+      tasks.addAll(fetchedTasks);
+    });
+  }
+    //Asynchronous function to update the completion status of the task in firebase
+
+    Future<void> updateTaskCompletionStatus(
+      String taskName, bool completed) async {
+
+   //get a reference to the 'task' collection in Firestore
+
+    CollectionReference taskCollection = db.collection('tasks');
+    
+   //Query Firestore for documents(tasks)with the given task name 
+    QuerySnapshot querySnapshot =
+       await taskCollection.where('name', isEqualTo: taskName).get();
+
+    //If a matching task document is found
+    if(querySnapshot.size > 0){
+      //Get a refrence to the first matching document
+      DocumentSnapshot documentSnapshot = querySnapshot.docs[0];
+
+      //update the completed field to the new completion status
+      await documentSnapshot.reference.update({'completed': completed});
+    }
+
+    setState(() {
+      //Find the index of the task in the task list
+      int taskIndex = tasks.indexWhere((task) => task == taskName);
+
+      //Update the corresponding checkbox value in the chcekboxes list
+      checkboxes[taskIndex] = completed;        
+    });
+
+
+  }
+
+  //Override the initstate method of the state class
+  @override
+  void initstate() {
+    super.initState();
+
+    // call function to the fetch the tasks from the database
+    fetchTaskFromFirestore();
+  }
 
   @override
   Widget build(BuildContext context) {
