@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -13,12 +14,10 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   FirebaseFirestore db = FirebaseFirestore.instance;
-
   final List<String> tasks = <String>[];
-
   final List<bool> checkboxes = List.generate(8, (index) => false);
-
   bool isChecked = false;
+  FocusNode _textFieldFocusNode = FocusNode();
 
   /*
   The TextEditingController class allows us to 
@@ -35,7 +34,7 @@ class _MyHomePageState extends State<MyHomePage> {
     //Add to the Firestore collection
     await db.collection('tasks').add({
       'name': taskName,
-      'completed': null,
+      'completed': false,
       'timestamp': FieldValue.serverTimestamp(),
     });
 
@@ -43,6 +42,36 @@ class _MyHomePageState extends State<MyHomePage> {
       tasks.insert(0, taskName);
       checkboxes.insert(0, false);
     });
+  }
+
+void removeItem(int index) async {
+    // Get the task name to be removed 
+    String taskNameToRemove = tasks[index];
+
+    //remove the task from the Firestore database 
+    QuerySnapshot querySnapshot = await db
+      .collection('tasks')
+      .where('name', isEqualTo: taskNameToRemove)
+      .get();
+
+    if(querySnapshot.size > 0 )  {
+      DocumentSnapshot documentSnapshot = querySnapshot.docs[0];
+
+      //update the completed field to the new completion status
+      await documentSnapshot.reference.delete();
+    }
+    //remove task from the task list and the checkboses list
+    setState(() {
+      tasks.removeAt(index);
+      checkboxes.removeAt(index);
+    });
+  }
+
+  void clearTextField(){
+    setState(() {
+      nameController.clear();
+    });
+
   }
 
 Future<void> fetchTaskFromFirestore() async {
@@ -106,8 +135,7 @@ Future<void> fetchTaskFromFirestore() async {
       //Update the corresponding checkbox value in the chcekboxes list
       checkboxes[taskIndex] = completed;        
     });
-
-
+    
   }
 
   //Override the initstate method of the state class
@@ -193,38 +221,51 @@ Future<void> fetchTaskFromFirestore() async {
                             : Color.fromARGB(255, 248, 70, 138).withOpacity(0.7),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          Icon(
-                            !checkboxes[index]
-                            ?Icons.manage_history 
-                            :Icons.playlist_add_check_circle,
-                            size: 32,
-                          ),
-                          SizedBox(width: 18),
-                          Text(
-                            '${tasks[index]}',
-                            style: checkboxes[index]
-                            ? TextStyle(
-                              decoration: TextDecoration.lineThrough,
-                              fontSize: 20,
-                              color: Colors.black.withOpacity(0.5)
-                            ) :TextStyle(fontSize: 20),
-                          ),
-                          Checkbox(
-                            value: checkboxes[index],
-                            onChanged: (newValue) {
-                              setState(() {
-                                checkboxes[index] = newValue!;
-                              });
-                            },
+                      child: Padding(
+                        padding: const EdgeInsets.all(14.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            Icon(
+                              !checkboxes[index]
+                              ?Icons.manage_history 
+                              :Icons.playlist_add_check_circle,
+                              size: 32,
                             ),
-                            IconButton(
-                              icon: Icon(Icons.delete),
-                              onPressed: null,
+                            SizedBox(width: 18),
+                            Expanded(
+                              child: Text(
+                                '${tasks[index]}',
+                                style: checkboxes[index]
+                                ? TextStyle(
+                                  decoration: TextDecoration.lineThrough,
+                                  fontSize: 20,
+                                  color: Colors.black.withOpacity(0.5)
+                                ) :TextStyle(fontSize: 20),
+                              ),
+                            ),
+                            Row(
+                              children: [
+                                Checkbox(
+                              value: checkboxes[index],
+                              onChanged: (newValue) {
+                                setState(() {
+                                  checkboxes[index] = newValue!;
+                                });
+                                updateTaskCompletionStatus(
+                                  tasks[index], newValue!);
+                              },
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.delete),
+                                onPressed: (){
+                                  removeItem(index);
+                                },
+                              ),
+                              ],
                             )
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   );
@@ -237,6 +278,7 @@ Future<void> fetchTaskFromFirestore() async {
                     child: Container(
                       child: TextField(
                         controller: nameController,
+                        focusNode: _textFieldFocusNode,
                         style: TextStyle(fontSize: 18),
                         maxLength: 20,
                         decoration: InputDecoration(
@@ -263,7 +305,9 @@ Future<void> fetchTaskFromFirestore() async {
                   ),
                   IconButton(
                     icon: Icon(Icons.clear),
-                    onPressed: null,
+                    onPressed: (){
+                      clearTextField();
+                    },
                   ),
                 ],
               ),
@@ -273,6 +317,9 @@ Future<void> fetchTaskFromFirestore() async {
               child: ElevatedButton(
                 onPressed: () {
                   addItemToList();
+                  _textFieldFocusNode.unfocus();
+                  clearTextField();
+                  //This will unfocus keyboard, closing it. 
                 },
                 child: Text('Add your goal'),
               ),
